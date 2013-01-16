@@ -209,6 +209,7 @@ def start(argv):
 	print "------------------------------------"
 	if all_hosts == []:
 		print "No hosts found"
+		full=[]
 	else:
 		full_host=hostchecker.Checker(all_hosts)
 		full=full_host.check()

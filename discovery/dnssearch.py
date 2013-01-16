@@ -147,6 +147,7 @@ class dns_tld():
 		"ug", "ua", "ae", "gb", "us", "um", "uy", "uz", "vu", "ve", "vn",
 		"vg", "vi", "wf", "eh", "ye", "yu", "za", "zr", "zm", "zw", "int",
 		"gs", "info", "biz", "su", "name", "coop", "aero" ]
+		#self.tlds = ["com", "org", "net", "cat"]
 
 	def getdns(self,domain):
 		DNS.ParseResolvConf("/etc/resolv.conf")
@@ -159,13 +160,20 @@ class dns_tld():
 		else:
 			rootdom=dom
 		if self.nameserver == False:
-			r=DNS.Request(rootdom,qtype='SOA').req()
-			primary,email,serial,refresh,retry,expire,minimum = r.answers[0]['data']
+			#r=DNS.Request(rootdom,qtype='SOA').req()
+			r=DNS.Request(rootdom,server=nameserver,qtype='NS').req()
+			#primary,email,serial,refresh,retry,expire,minimum = r.answers[0]['data']
+			primary = r.answers[0]['data']
+			# get IP address from DNS
+			r=DNS.Request(primary,server=nameserver,qtype='A').req()
+			primary = r.answers[0]['data']
+			#print primary
 			test=DNS.Request(rootdom,qtype='NS',server=primary,aa=1).req()
 			if test.header['status'] != "NOERROR":
 				print "Error"
 				sys.exit()
-			self.nameserver= test.answers[0]['data']
+			#self.nameserver= test.answers[0]['data']
+			self.nameserver= primary
 		elif self.nameserver == "local":
 			self.nameserver=nameserver
 		return self.nameserver
@@ -180,6 +188,7 @@ class dns_tld():
 			sys.stdout.flush()
 		try:
 			test=DNS.Request(hostname,qtype='a',server=self.nameserver).req()
+			#print '\n',hostname, '|', self.nameserver, '|', test.answers
 			hostip=test.answers[0]['data']
 			return hostip+":"+hostname
 		except Exception,e:

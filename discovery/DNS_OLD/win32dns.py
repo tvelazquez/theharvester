@@ -1,5 +1,5 @@
 """
- $Id: win32dns.py,v 1.3.2.3 2011/03/21 21:06:47 customdesigned Exp $
+ $Id: win32dns.py,v 1.3.2.1 2007/05/22 20:26:49 customdesigned Exp $
 
  Extract a list of TCP/IP name servers from the registry 0.1
     0.1 Strobl 2001-07-19
@@ -19,7 +19,7 @@
           License analog to the current Python license
 """
 
-import re
+import string, re
 import _winreg
 
 def binipdisplay(s):
@@ -33,7 +33,7 @@ def binipdisplay(s):
         ip=[]
         for j in s1:
             ip.append(str(ord(j)))
-        ol.append('.'.join(ip))
+        ol.append(string.join(ip,'.'))
     return ol
 
 def stringdisplay(s):
@@ -41,7 +41,7 @@ def stringdisplay(s):
        also handle u'd.d.d.d d.d.d.d', as reporting on SF 
     '''
     import re
-    return [str(x) for x in re.split("[ ,]",s)]
+    return map(str, re.split("[ ,]",s))
 
 def RegistryResolve():
     nameservers=[]
@@ -116,12 +116,6 @@ if __name__=="__main__":
 
 #
 # $Log: win32dns.py,v $
-# Revision 1.3.2.3  2011/03/21 21:06:47  customdesigned
-# Replace map() with list comprehensions.
-#
-# Revision 1.3.2.2  2011/03/21 21:03:22  customdesigned
-# Get rid of obsolete string module
-#
 # Revision 1.3.2.1  2007/05/22 20:26:49  customdesigned
 # Fix win32 nameserver discovery.
 #

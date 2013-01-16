@@ -1,11 +1,11 @@
 # -*- encoding: utf-8 -*-
 """
- $Id: Lib.py,v 1.11.2.11 2011/11/23 17:07:14 customdesigned Exp $
+ $Id: Lib.py,v 1.11.2.3 2007/05/22 20:27:40 customdesigned Exp $
 
  This file is part of the pydns project.
  Homepage: http://pydns.sourceforge.net
 
- This code is covered by the standard Python License. See LICENSE for details.
+ This code is covered by the standard Python License.
 
  Library code. Largely this is packers and unpackers for various types.
 """
@@ -23,18 +23,14 @@
 # ------------------------------------------------------------------------
 
 
-import types
+import string, types
 
 import Type
 import Class
 import Opcode
 import Status
-#import DNS
 
 from Base import DNSError
-
-LABEL_UTF8 = False
-LABEL_ENCODING = 'idna'
 
 class UnpackError(DNSError): pass
 class PackError(DNSError): pass
@@ -94,47 +90,31 @@ class Packer:
         # Domain name packing (section 4.1.4)
         # Add a domain name to the buffer, possibly using pointers.
         # The case of the first occurrence of a name is preserved.
-        # One trailing dot is ignored.
-        if name.endswith('.'):
-            name = name[:-1]
-        if name:
-            nlist = name.split('.')
-            for label in nlist:
-                if not label:
-                    raise PackError, 'empty label'
-        else:
-            nlist = []
+        # Redundant dots are ignored.
+        list = []
+        for label in string.splitfields(name, '.'):
+            if label:
+                if len(label) > 63:
+                    raise PackError, 'label too long'
+                list.append(label)
         keys = []
-        for i in range(len(nlist)):
-            key = '.'.join(nlist[i:]).upper()
+        for i in range(len(list)):
+            key = string.upper(string.joinfields(list[i:], '.'))
             keys.append(key)
             if self.index.has_key(key):
                 pointer = self.index[key]
                 break
         else:
-            i = len(nlist)
+            i = len(list)
             pointer = None
         # Do it into temporaries first so exceptions don't
         # mess up self.index and self.buf
         buf = ''
         offset = len(self.buf)
         index = []
-        if LABEL_UTF8:
-          enc = 'utf8'
-        else:
-          enc = LABEL_ENCODING
         for j in range(i):
-            label = nlist[j]
-            try:
-                label = label.encode(enc)
-            except UnicodeEncodeError:
-                if not LABEL_UTF8: raise
-                if not label.startswith('\ufeff'):
-                    label = '\ufeff'+label
-                label = label.encode(enc)
+            label = list[j]
             n = len(label)
-            if n > 63:
-                raise PackError, 'label too long'
             if offset + len(buf) < 0x3FFF:
                 index.append((keys[j], offset + len(buf)))
             else:
@@ -348,11 +328,11 @@ class RRpacker(Packer):
         self.add32bit(expire)
         self.add32bit(minimum)
         self.endRR()
-    def addTXT(self, name, klass, ttl, tlist):
+    def addTXT(self, name, klass, ttl, list):
         self.addRRheader(name, Type.TXT, klass, ttl)
-        if type(tlist) is types.StringType:
-            tlist = [tlist]
-        for txtdata in tlist:
+        if type(list) is types.StringType:
+            list = [list]
+        for txtdata in list:
             self.addstring(txtdata)
         self.endRR()
     # Internet specific RRs (section 3.4) -- class = IN
@@ -416,11 +396,10 @@ class RRunpacker(Unpacker):
                ('expire',)+prettyTime(self.get32bit()), \
                ('minimum',)+prettyTime(self.get32bit())
     def getTXTdata(self):
-        txt = []
+        list = []
         while self.offset != self.rdend:
-            txt.append(self.getstring())
-        return txt
-    getSPFdata = getTXTdata
+            list.append(self.getstring())
+        return list
     def getAdata(self):
         return self.getaddr()
     def getWKSdata(self):
@@ -550,7 +529,7 @@ class DnsResult:
             h['opcode'],h['status'],h['id'])
         flags=filter(lambda x,h=h:h[x],('qr','aa','rd','ra','tc'))
         print ';; flags: %s; Ques: %d, Ans: %d, Auth: %d, Addit: %d'%(
-            ''.join(flags),h['qdcount'],h['ancount'],h['nscount'],
+            string.join(flags),h['qdcount'],h['ancount'],h['nscount'],
             h['arcount'])
         print ';; QUESTIONS:'
         for q in self.questions:
@@ -647,32 +626,6 @@ if __name__ == "__main__":
     testpacker()
 #
 # $Log: Lib.py,v $
-# Revision 1.11.2.11  2011/11/23 17:07:14  customdesigned
-# Rename some args in DNS.Lib to match py3dns.
-#
-# Revision 1.11.2.10  2011/08/04 22:23:55  customdesigned
-# Allow empty label at end (trailing dot), so now '.' can lookup the
-# root zone again.
-#
-# Revision 1.11.2.9  2011/03/21 21:03:22  customdesigned
-# Get rid of obsolete string module
-#
-# Revision 1.11.2.8  2011/03/16 20:06:39  customdesigned
-# Refer to explicit LICENSE file.
-#
-# Revision 1.11.2.7  2009/06/09 18:39:06  customdesigned
-# Built-in SPF support
-#
-# Revision 1.11.2.6  2008/10/15 22:34:06  customdesigned
-# Default to idna encoding.
-#
-# Revision 1.11.2.5  2008/09/17 17:35:14  customdesigned
-# Use 7-bit ascii encoding, because case folding needs to be disabled
-# before utf8 is safe to use, even experimentally.
-#
-# Revision 1.11.2.4  2008/09/17 16:09:53  customdesigned
-# Encode unicode labels as UTF-8
-#
 # Revision 1.11.2.3  2007/05/22 20:27:40  customdesigned
 # Fix unpacker underflow.
 #

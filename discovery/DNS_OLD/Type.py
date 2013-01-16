@@ -1,11 +1,11 @@
 # -*- encoding: utf-8 -*-
 """
- $Id: Type.py,v 1.6.2.3 2011/03/16 20:06:39 customdesigned Exp $
+ $Id: Type.py,v 1.6.2.1 2007/05/22 20:20:39 customdesigned Exp $
 
  This file is part of the pydns project.
  Homepage: http://pydns.sourceforge.net
 
- This code is covered by the standard Python License. See LICENSE for details.
+ This code is covered by the standard Python License.
 
  TYPE values (section 3.2.2)
 """
@@ -28,7 +28,7 @@ MX = 15         # mail exchange
 TXT = 16        # text strings
 AAAA = 28       # IPv6 AAAA records (RFC 1886)
 SRV = 33        # DNS RR for specifying the location of services (RFC 2782)
-SPF = 99        # TXT RR for Sender Policy Framework
+
 
 # Additional TYPE values from host.c source
 
@@ -54,12 +54,6 @@ def typestr(type):
     else: return `type`
 #
 # $Log: Type.py,v $
-# Revision 1.6.2.3  2011/03/16 20:06:39  customdesigned
-# Refer to explicit LICENSE file.
-#
-# Revision 1.6.2.2  2009/06/09 18:39:06  customdesigned
-# Built-in SPF support
-#
 # Revision 1.6.2.1  2007/05/22 20:20:39  customdesigned
 # Mark utf-8 encoding
 #

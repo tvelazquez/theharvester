@@ -1,10 +1,10 @@
 """
- $Id: Status.py,v 1.7.2.1 2011/03/16 20:06:39 customdesigned Exp $
+ $Id: Status.py,v 1.7 2002/04/23 12:52:19 anthonybaxter Exp $
 
  This file is part of the pydns project.
  Homepage: http://pydns.sourceforge.net
 
- This code is covered by the standard Python License. See LICENSE for details.
+ This code is covered by the standard Python License.
 
  Status values in message header
 """
@@ -41,9 +41,6 @@ def statusstr(status):
 
 #
 # $Log: Status.py,v $
-# Revision 1.7.2.1  2011/03/16 20:06:39  customdesigned
-# Refer to explicit LICENSE file.
-#
 # Revision 1.7  2002/04/23 12:52:19  anthonybaxter
 # cleanup whitespace.
 #
