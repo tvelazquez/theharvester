@@ -69,7 +69,7 @@ class dns_force():
 		except:
 			print "Error opening dns dictionary file"
 			sys.exit()
-		self.list = f.readlines()
+		self.list = map(lambda x:x.strip(),f.readlines())
 
 	def getdns(self,domain):
 		DNS.ParseResolvConf("/etc/resolv.conf")
@@ -82,21 +82,27 @@ class dns_force():
 		else:
 			rootdom=dom
 		if self.nameserver == False:
-			r=DNS.Request(rootdom,qtype='SOA').req()
-			primary,email,serial,refresh,retry,expire,minimum = r.answers[0]['data']
-			test=DNS.Request(rootdom,qtype='NS',server=primary,aa=1).req()
-			if test.header['status'] != "NOERROR":
-				print "Error"
-				sys.exit()
-			self.nameserver= test.answers[0]['data']
+			try:
+				r=DNS.Request(rootdom,server=nameserver,qtype='NS').req()
+				primary = r.answers[0]['data']
+				# get IP address from DNS
+				r=DNS.Request(primary,server=nameserver,qtype='A').req()
+				primary = r.answers[0]['data']
+				test=DNS.Request(rootdom,qtype='NS',server=primary,aa=1).req()
+				if test.header['status'] != "NOERROR":
+					print "Error"
+					sys.exit()
+				self.nameserver= primary
+			except:
+				pass
 		elif self.nameserver == "local":
 			self.nameserver=nameserver
 		return self.nameserver
 
 	def run(self,host):
-		if self.nameserver == "":
+		if not self.nameserver or self.nameserver == "":
 			self.nameserver = self.getdns(self.domain)	
-		hostname=str(host.split("\n")[0])+"."+str(self.domain)
+		hostname=host+"."+self.domain
 		if self.verbose:
 			ESC=chr(27)
 			sys.stdout.write(ESC + '[2K' + ESC+'[G')
@@ -109,12 +115,33 @@ class dns_force():
 		except Exception,e:
 			pass
 
+	def get_domain_addr(self, hostname):
+		try:
+			if not self.nameserver or self.nameserver == "":
+				self.nameserver = self.getdns(self.domain)
+			hostname_nxdomain = 'inexistent_subdomain_name.'+hostname
+			test=DNS.Request(hostname_nxdomain,qtype='a',server=self.nameserver).req()
+			nxdomain_addr=test.answers[0]['data']
+
+			test=DNS.Request(hostname,qtype='a',server=self.nameserver).req()
+			hostip=test.answers[0]['data']
+
+			if nxdomain_addr == hostip:
+				return hostip
+		except Exception,e:
+			pass
+
 	def process(self):
 		results=[]
+		domain_addr = self.get_domain_addr(self.domain)
 		for x in self.list:
 			host=self.run(x)
 			if host!=None:
-				results.append(host)
+				# only different ip addresses to domain
+				if host.split(':')[0] != domain_addr:
+					results.append(host)
+		if self.verbose:
+			sys.stdout.write("\r")
 		return results
 
 class dns_tld():
@@ -123,7 +150,9 @@ class dns_tld():
 		self.nameserver = dnsserver
 		self.subdo = False 
 		self.verbose = verbose
+		# TLDs should be in a file
 		self.tlds = ["com", "org", "net", "edu", "mil", "gov", "uk", "af", "al", "dz",
+		"ax", "eu", "me", "ps", "rs", "tl",
 		"as", "ad", "ao", "ai", "aq", "ag", "ar", "am", "aw", "ac","au",
 		"at", "az", "bs", "bh", "bd", "bb", "by", "be", "bz", "bj", "bm",
 		"bt", "bo", "ba", "bw", "bv", "br", "io", "bn", "bg", "bf", "bi",
@@ -145,9 +174,9 @@ class dns_tld():
 		"sh", "pm", "sd", "sr", "sj", "sz", "se", "ch", "sy", "tw", "tj",
 		"tz", "th", "tg", "tk", "to", "tt", "tn", "tr", "tm", "tc", "tv",
 		"ug", "ua", "ae", "gb", "us", "um", "uy", "uz", "vu", "ve", "vn",
-		"vg", "vi", "wf", "eh", "ye", "yu", "za", "zr", "zm", "zw", "int",
-		"gs", "info", "biz", "su", "name", "coop", "aero" ]
-		#self.tlds = ["com", "org", "net", "cat"]
+		"vg", "vi", "wf", "eh", "ye", "yu", "zr", "zm", "zw", "int",
+		"gs", "info", "biz", "su", "name", "coop", "aero", "cat", "jobs",
+		"mobi", "museum", "pro", "tel",	"travel"]
 
 	def getdns(self,domain):
 		DNS.ParseResolvConf("/etc/resolv.conf")
@@ -160,20 +189,18 @@ class dns_tld():
 		else:
 			rootdom=dom
 		if self.nameserver == False:
-			#r=DNS.Request(rootdom,qtype='SOA').req()
-			r=DNS.Request(rootdom,server=nameserver,qtype='NS').req()
-			#primary,email,serial,refresh,retry,expire,minimum = r.answers[0]['data']
-			primary = r.answers[0]['data']
-			# get IP address from DNS
-			r=DNS.Request(primary,server=nameserver,qtype='A').req()
-			primary = r.answers[0]['data']
-			#print primary
-			test=DNS.Request(rootdom,qtype='NS',server=primary,aa=1).req()
-			if test.header['status'] != "NOERROR":
-				print "Error"
-				sys.exit()
-			#self.nameserver= test.answers[0]['data']
-			self.nameserver= primary
+			try:
+				r=DNS.Request(rootdom,server=nameserver,qtype='NS').req()
+				primary = r.answers[0]['data']
+				r=DNS.Request(primary,server=nameserver,qtype='A').req()
+				primary = r.answers[0]['data']
+				test=DNS.Request(rootdom,qtype='NS',server=primary,aa=1).req()
+				if test.header['status'] != "NOERROR":
+					print "Error"
+					sys.exit()
+				self.nameserver = primary
+			except:
+				pass
 		elif self.nameserver == "local":
 			self.nameserver=nameserver
 		return self.nameserver
@@ -188,7 +215,6 @@ class dns_tld():
 			sys.stdout.flush()
 		try:
 			test=DNS.Request(hostname,qtype='a',server=self.nameserver).req()
-			#print '\n',hostname, '|', self.nameserver, '|', test.answers
 			hostip=test.answers[0]['data']
 			return hostip+":"+hostname
 		except Exception,e:
